@@ -6,36 +6,43 @@ from agno.tools.exa import ExaTools
 from agno.playground import Playground, serve_playground_app
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
+# Load environment variables
 load_dotenv()
 
-# Secure API key setup - Load from .env file
-openai_key = os.getenv('OPENAI_API_KEY')
+# Get API keys
+openrouter_key = os.getenv('OPENROUTER_API_KEY')
 exa_key = os.getenv('EXA_API_KEY')
 
-# Validate that keys are present
-if not openai_key:
-    print("❌ ERROR: OPENAI_API_KEY not found in .env file")
-    print("💡 Create a .env file with your API keys")
+# Validate OpenRouter key
+if not openrouter_key:
+    print("❌ ERROR: OPENROUTER_API_KEY not found in .env file")
+    print("💡 Get free API key from: https://openrouter.ai/keys")
     exit(1)
 
-if not exa_key:
-    print("❌ ERROR: EXA_API_KEY not found in .env file")
-    print("💡 Create a .env file with your API keys")
-    exit(1)
+print("✅ OpenRouter API key loaded successfully!")
 
-# Set environment variables securely
-os.environ["OPENAI_API_KEY"] = openai_key
-os.environ["EXA_API_KEY"] = exa_key
+# Configure tools
+tools = []
+if exa_key:
+    os.environ["EXA_API_KEY"] = exa_key
+    tools = [ExaTools()]
+    print("✅ Exa search enabled")
+else:
+    print("⚠️  Exa search disabled - no EXA_API_KEY")
 
-print("✅ API keys loaded securely from .env file")
-print("🎬 Starting Movie Recommendation Agent...")
+print("🎬 Starting Movie Recommendation Agent with DeepSeek via OpenRouter...")
 
-# Create the Movie Recommendation Agent
+# Create agent with OpenRouter + DeepSeek (without headers)
 movie_recommendation_agent = Agent(
     name='Movie Recommendation Agent',
-    model=OpenAIChat(id='gpt-4o-mini'),  
-    tools=[ExaTools()],
+    model=OpenAIChat(
+        id='deepseek/deepseek-chat',  # OpenRouter model format
+        api_key=openrouter_key,
+        base_url="https://openrouter.ai/api/v1",
+        temperature=0.7,
+        max_tokens=2000
+    ),
+    tools=tools,
     description=dedent("""\
         You are a **passionate and knowledgeable movie expert**. Your mission is to help users **discover their next favorite movies** by providing **detailed, personalized, and exciting recommendations**.
 

@@ -4,7 +4,6 @@ from fastapi import FastAPI
 from agno.agent import Agent
 from agno.models.openai import OpenAIChat
 from agno.playground import Playground
-from agno.app.playground.settings import PlaygroundSettings
 import uvicorn
 from dotenv import load_dotenv
 
@@ -22,7 +21,7 @@ print("✅ OpenRouter API key loaded successfully!")
 print("🎬 Starting Movie Recommendation Agent with DeepSeek via OpenRouter...")
 
 # Get your public URL for better logging
-public_url = os.getenv('RAILWAY_STATIC_URL', 'movie-recommendation-agent-production.up.railway.app')
+public_url = os.getenv('RAILWAY_STATIC_URL', 'movie-recommendation-agent.up.railway.app')
 port = int(os.getenv('PORT', 7777))
 
 print(f"🌐 Public URL: {public_url}")
@@ -104,15 +103,8 @@ movie_recommendation_agent = Agent(
     markdown=True,
 )
 
-# ✅ FIXED: Use only valid PlaygroundSettings parameters
-app = Playground(
-    agents=[movie_recommendation_agent],
-    # Only use valid parameters for PlaygroundSettings
-    settings=PlaygroundSettings(
-        # You can set environment if needed, but it's optional
-        # env="dev" 
-    )
-).get_app()
+# ✅ SIMPLEST APPROACH: No settings at all
+app = Playground(agents=[movie_recommendation_agent]).get_app()
 
 # ✅ Add health check and info endpoints to the main app
 @app.get("/health")
@@ -140,7 +132,7 @@ async def api_info():
         }
     }
 
-# ✅ Optional: Add a root redirect to make it clear
+# ✅ Root endpoint
 @app.get("/")
 async def root():
     return {

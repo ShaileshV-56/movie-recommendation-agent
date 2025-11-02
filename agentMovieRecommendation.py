@@ -3,7 +3,6 @@ from textwrap import dedent
 from fastapi import FastAPI
 from agno.agent import Agent
 from agno.models.openai import OpenAIChat
-from agno.playground import Playground
 import uvicorn
 from dotenv import load_dotenv
 
@@ -103,10 +102,29 @@ movie_recommendation_agent = Agent(
     markdown=True,
 )
 
-# ✅ SIMPLEST APPROACH: No settings at all
-app = Playground(agents=[movie_recommendation_agent]).get_app()
+# ✅ Create FastAPI app directly
+app = FastAPI(
+    title="Movie Recommendation API",
+    description="AI-powered movie recommendation system using DeepSeek via OpenRouter",
+    version="1.0.0"
+)
 
-# ✅ Add health check and info endpoints to the main app
+# ✅ Simple chat endpoint using the agent directly
+@app.post("/chat")
+async def chat_with_agent(message: str):
+    """Chat with the movie recommendation agent"""
+    try:
+        response = await movie_recommendation_agent.arun(message)
+        return {
+            "response": response,
+            "status": "success"
+        }
+    except Exception as e:
+        return {
+            "error": str(e),
+            "status": "error"
+        }
+
 @app.get("/health")
 async def health_check():
     import datetime
@@ -126,28 +144,31 @@ async def api_info():
         "agent": "Movie Recommendation Agent with DeepSeek",
         "model": "deepseek/deepseek-chat",
         "endpoints": {
-            "playground": "/",
+            "chat": "/chat (POST with {'message': 'your question'})",
             "health": "/health", 
-            "info": "/info"
+            "info": "/info",
+            "docs": "/docs"
         }
     }
 
-# ✅ Root endpoint
 @app.get("/")
 async def root():
     return {
-        "message": "Movie Recommendation API - Access the playground at this URL",
-        "playground": "Available at this root endpoint",
-        "other_endpoints": {
-            "health": "/health",
-            "info": "/info"
+        "message": "Movie Recommendation API", 
+        "status": "running",
+        "version": "1.0.0",
+        "usage": "Use the /chat endpoint to get movie recommendations",
+        "example": {
+            "endpoint": "POST /chat",
+            "body": {"message": "Recommend some sci-fi movies from the last 5 years"}
         }
     }
 
 if __name__ == '__main__':
     print(f"🌐 Starting server on port {port}")
     print(f"🚀 Public URL: https://{public_url}")
-    print(f"🎮 Playground: https://{public_url}/")  # Now at root!
+    print(f"📚 API Documentation: https://{public_url}/docs")
+    print(f"💬 Chat Endpoint: https://{public_url}/chat")
     print(f"❤️  Health Check: https://{public_url}/health")
     print(f"🔍 API Info: https://{public_url}/info")
     

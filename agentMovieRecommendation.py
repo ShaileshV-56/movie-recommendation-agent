@@ -9,14 +9,15 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# Get API keys
+# Get API keys from environment (works both locally and on deployment)
 openrouter_key = os.getenv('OPENROUTER_API_KEY')
 exa_key = os.getenv('EXA_API_KEY')
 
 # Validate OpenRouter key
 if not openrouter_key:
-    print("❌ ERROR: OPENROUTER_API_KEY not found in .env file")
-    print("💡 Get free API key from: https://openrouter.ai/keys")
+    print("❌ ERROR: OPENROUTER_API_KEY not found")
+    print("💡 For Local: Add to .env file")
+    print("💡 For Deployment: Add in platform environment variables")
     exit(1)
 
 print("✅ OpenRouter API key loaded successfully!")
@@ -32,7 +33,7 @@ else:
 
 print("🎬 Starting Movie Recommendation Agent with DeepSeek via OpenRouter...")
 
-# Create agent with OpenRouter + DeepSeek (without headers)
+# Create agent with OpenRouter + DeepSeek
 movie_recommendation_agent = Agent(
     name='Movie Recommendation Agent',
     model=OpenAIChat(
@@ -112,6 +113,17 @@ movie_recommendation_agent = Agent(
 app = Playground(agents=[movie_recommendation_agent]).get_app()
 
 if __name__ == '__main__':
-    print("🌐 Web interface starting at: http://localhost:7777")
+    # Get port from environment (for deployment) or default to 7777
+    port = int(os.getenv('PORT', 7777))
+    host = os.getenv('HOST', '127.0.0.1')
+    
+    print(f"🌐 Web interface starting at: http://{host}:{port}")
     print("🛑 Press Ctrl+C to stop the server")
-    serve_playground_app('agentMovieRecommendation:app', reload=True)
+    
+    # For deployment, use 0.0.0.0 to allow external connections
+    serve_playground_app(
+        'agentMovieRecommendation:app', 
+        reload=True,
+        host='0.0.0.0',  # Allow external access
+        port=port
+    )

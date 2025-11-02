@@ -1,5 +1,6 @@
 import os
 from textwrap import dedent
+from fastapi import FastAPI
 from agno.agent import Agent
 from agno.models.openai import OpenAIChat
 from agno.playground import Playground, serve_playground_app
@@ -95,32 +96,64 @@ movie_recommendation_agent = Agent(
     markdown=True,
 )
 
-# ✅ Explicit settings to avoid pydantic env bug (/etc/profile issue)
-settings = PlaygroundSettings(env="dev")
+# ✅ Create FastAPI app FIRST
+app = FastAPI(
+    title="Movie Recommendation API",
+    description="AI-powered movie recommendation system using DeepSeek via OpenRouter",
+    version="1.0.0"
+)
 
-# Create Playground
-app = Playground(agents=[movie_recommendation_agent], settings=settings).get_app()
-
-# ✅ ADD THIS SECTION RIGHT HERE - Root endpoint
+# ✅ Add your custom routes to the FastAPI app
 @app.get("/")
 async def root():
     return {
         "message": "Movie Recommendation API", 
         "status": "running",
-        "version": "1.0",
+        "version": "1.0.0",
         "endpoints": {
             "docs": "/docs",
             "health": "/health",
             "playground": "/playground"
         },
-        "agent": "Movie Recommendation Agent with DeepSeek"
+        "agent": "Movie Recommendation Agent with DeepSeek",
+        "model": "deepseek/deepseek-chat"
     }
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy", "timestamp": "2025-11-02T16:20:00Z"}
+    import datetime
+    return {
+        "status": "healthy", 
+        "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
+        "service": "Movie Recommendation API"
+    }
 
+@app.get("/info")
+async def api_info():
+    return {
+        "name": "Movie Recommendation API",
+        "version": "1.0.0",
+        "description": "AI-powered movie recommendation system",
+        "features": [
+            "Personalized movie recommendations",
+            "DeepSeek AI integration via OpenRouter",
+            "Interactive playground interface",
+            "RESTful API endpoints"
+        ]
+    }
+
+# ✅ Explicit settings to avoid pydantic env bug
+settings = PlaygroundSettings(env="dev")
+
+# ✅ Then mount the playground on the FastAPI app
+playground_app = Playground(agents=[movie_recommendation_agent], settings=settings).get_app()
+app.mount("/playground", playground_app)
+
+# ✅ Keep your existing main block
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 7777))
     print(f"🌐 Starting server on port {port}")
+    print(f"📚 API Documentation: http://0.0.0.0:{port}/docs")
+    print(f"🎮 Playground: http://0.0.0.0:{port}/playground")
+    print(f"❤️  Health Check: http://0.0.0.0:{port}/health")
     serve_playground_app('agentMovieRecommendation:app', host='0.0.0.0', port=port, reload=False)

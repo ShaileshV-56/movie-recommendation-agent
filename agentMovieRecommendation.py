@@ -3,6 +3,7 @@ from textwrap import dedent
 from agno.agent import Agent
 from agno.models.openai import OpenAIChat
 from agno.playground import Playground, serve_playground_app
+from agno.app.playground.settings import PlaygroundSettings
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -36,7 +37,7 @@ movie_recommendation_agent = Agent(
         - Analyze user input to **understand their tastes, favorite genres, and specific preferences**.
         - Curate recommendations using a mix of **classic masterpieces, hidden gems, and trending films**.
         - Ensure each suggestion is **relevant, diverse, and backed by strong ratings and reviews**.
-        - Provide **up-to-date information** on movie details, including cast, director, runtime, and content advisories.
+        - Provide **up-to-date information** on movie details, including cast, director, runtime, and content advisories**.
         - Highlight **where to watch**, suggest **upcoming releases**, and include **trailers when available**.
 
         ### **Your Recommendations Should Include:**
@@ -94,8 +95,11 @@ movie_recommendation_agent = Agent(
     markdown=True,
 )
 
-# Create Playground WITHOUT custom settings
-app = Playground(agents=[movie_recommendation_agent]).get_app()
+# ✅ Explicit settings to avoid pydantic env bug (/etc/profile issue)
+settings = PlaygroundSettings(env="dev")
+
+# Create Playground
+app = Playground(agents=[movie_recommendation_agent], settings=settings).get_app()
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 7777))

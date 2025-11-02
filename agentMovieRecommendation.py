@@ -20,7 +20,7 @@ if not openrouter_key:
 print("✅ OpenRouter API key loaded successfully!")
 print("🎬 Starting Movie Recommendation Agent with DeepSeek via OpenRouter...")
 
-# ✅ Get your public URL for better playground configuration
+# ✅ Get your public URL for better logging
 public_url = os.getenv('RAILWAY_STATIC_URL', 'movie-recommendation-agent-production.up.railway.app')
 port = int(os.getenv('PORT', 7777))
 
@@ -154,19 +154,13 @@ async def api_info():
         "playground_url": f"https://{public_url}/playground"
     }
 
-# ✅ Configure playground with better settings
-settings = PlaygroundSettings(
-    env="dev",
-    # Improved configuration for deployment
-    api_url=f"https://{public_url}",
-    enabled=True
-)
+# ✅ FIXED: Use only valid PlaygroundSettings parameters
+settings = PlaygroundSettings(env="dev")
 
 # ✅ Create and mount the playground
 playground_app = Playground(
     agents=[movie_recommendation_agent], 
-    settings=settings,
-    debug=True
+    settings=settings
 ).get_app()
 
 app.mount("/playground", playground_app)

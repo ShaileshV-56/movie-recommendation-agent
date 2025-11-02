@@ -2,16 +2,14 @@ import os
 from textwrap import dedent
 from agno.agent import Agent
 from agno.models.openai import OpenAIChat
-from agno.tools.exa import ExaTools
-from agno.playground import Playground, serve_playground_app
+from agno.playground import Playground, serve_playground_app, PlaygroundSettings
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
 
-# Get API keys from environment (works both locally and on deployment)
+# Get API keys from environment
 openrouter_key = os.getenv('OPENROUTER_API_KEY')
-exa_key = os.getenv('EXA_API_KEY')
 
 # Validate OpenRouter key
 if not openrouter_key:
@@ -21,29 +19,19 @@ if not openrouter_key:
     exit(1)
 
 print("✅ OpenRouter API key loaded successfully!")
-
-# Configure tools
-tools = []
-if exa_key:
-    os.environ["EXA_API_KEY"] = exa_key
-    tools = [ExaTools()]
-    print("✅ Exa search enabled")
-else:
-    print("⚠️  Exa search disabled - no EXA_API_KEY")
-
 print("🎬 Starting Movie Recommendation Agent with DeepSeek via OpenRouter...")
 
-# Create agent with OpenRouter + DeepSeek
+# Create agent with OpenRouter + DeepSeek (without Exa tools)
 movie_recommendation_agent = Agent(
     name='Movie Recommendation Agent',
     model=OpenAIChat(
-        id='deepseek/deepseek-chat',  # OpenRouter model format
+        id='deepseek/deepseek-chat',
         api_key=openrouter_key,
         base_url="https://openrouter.ai/api/v1",
         temperature=0.7,
         max_tokens=2000
     ),
-    tools=tools,
+    tools=[],  # No Exa tools - removes the dependency
     description=dedent("""\
         You are a **passionate and knowledgeable movie expert**. Your mission is to help users **discover their next favorite movies** by providing **detailed, personalized, and exciting recommendations**.
 
@@ -79,9 +67,9 @@ movie_recommendation_agent = Agent(
         - Consider specific user requirements (e.g., genre, rating, language, mood).
 
         #### 2. **Search & Curation**
-        - Utilize Exa to search for relevant movie options.
+        - Use your extensive movie knowledge to find relevant options.
         - Ensure variety in recommendations (mix of classics, hidden gems, and trending titles).
-        - Verify that movie details are up-to-date and accurate.
+        - Verify that movie details are accurate based on your training data.
 
         #### 3. **Detailed Information for Each Recommendation**
         Each movie recommendation should include:
@@ -94,9 +82,9 @@ movie_recommendation_agent = Agent(
         - Notable Cast & Director
 
         #### 4. **Additional Features**
-        - Include official trailers when available.
-        - Suggest upcoming releases in similar genres.
-        - Mention streaming availability when possible.
+        - Include streaming availability when possible.
+        - Suggest similar movies in related genres.
+        - Mention why each movie suits the user's request.
 
         #### **Presentation Style**
         - Format output using clear Markdown structure.
@@ -109,21 +97,29 @@ movie_recommendation_agent = Agent(
     markdown=True,
 )
 
-# Create Playground web interface
-app = Playground(agents=[movie_recommendation_agent]).get_app()
+# Create Playground with explicit settings to avoid environment conflicts
+playground_settings = PlaygroundSettings(
+    # Explicitly set environment to avoid conflicts
+    env=None  # or use a valid environment if needed
+)
+
+# Create Playground web interface with explicit settings
+app = Playground(
+    agents=[movie_recommendation_agent],
+    settings=playground_settings
+).get_app()
 
 if __name__ == '__main__':
     # Get port from environment (for deployment) or default to 7777
     port = int(os.getenv('PORT', 7777))
-    host = os.getenv('HOST', '127.0.0.1')
     
-    print(f"🌐 Web interface starting at: http://{host}:{port}")
+    print(f"🌐 Web interface starting on port: {port}")
     print("🛑 Press Ctrl+C to stop the server")
     
     # For deployment, use 0.0.0.0 to allow external connections
     serve_playground_app(
         'agentMovieRecommendation:app', 
-        reload=True,
-        host='0.0.0.0',  # Allow external access
+        reload=False,  # Disable reload in production
+        host='0.0.0.0',
         port=port
     )

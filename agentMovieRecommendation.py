@@ -20,6 +20,13 @@ if not openrouter_key:
 print("✅ OpenRouter API key loaded successfully!")
 print("🎬 Starting Movie Recommendation Agent with DeepSeek via OpenRouter...")
 
+# ✅ Get your public URL for better playground configuration
+public_url = os.getenv('RAILWAY_STATIC_URL', 'movie-recommendation-agent-production.up.railway.app')
+port = int(os.getenv('PORT', 7777))
+
+print(f"🌐 Public URL: {public_url}")
+print(f"🔧 Port: {port}")
+
 # Create agent
 movie_recommendation_agent = Agent(
     name='Movie Recommendation Agent',
@@ -113,10 +120,12 @@ async def root():
         "endpoints": {
             "docs": "/docs",
             "health": "/health",
+            "info": "/info",
             "playground": "/playground"
         },
         "agent": "Movie Recommendation Agent with DeepSeek",
-        "model": "deepseek/deepseek-chat"
+        "model": "deepseek/deepseek-chat",
+        "public_url": f"https://{public_url}"
     }
 
 @app.get("/health")
@@ -125,7 +134,8 @@ async def health_check():
     return {
         "status": "healthy", 
         "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
-        "service": "Movie Recommendation API"
+        "service": "Movie Recommendation API",
+        "public_url": f"https://{public_url}"
     }
 
 @app.get("/info")
@@ -134,26 +144,40 @@ async def api_info():
         "name": "Movie Recommendation API",
         "version": "1.0.0",
         "description": "AI-powered movie recommendation system",
+        "public_url": f"https://{public_url}",
         "features": [
             "Personalized movie recommendations",
             "DeepSeek AI integration via OpenRouter",
             "Interactive playground interface",
             "RESTful API endpoints"
-        ]
+        ],
+        "playground_url": f"https://{public_url}/playground"
     }
 
-# ✅ Explicit settings to avoid pydantic env bug
-settings = PlaygroundSettings(env="dev")
+# ✅ Configure playground with better settings
+settings = PlaygroundSettings(
+    env="dev",
+    # Improved configuration for deployment
+    api_url=f"https://{public_url}",
+    enabled=True
+)
 
-# ✅ Then mount the playground on the FastAPI app
-playground_app = Playground(agents=[movie_recommendation_agent], settings=settings).get_app()
+# ✅ Create and mount the playground
+playground_app = Playground(
+    agents=[movie_recommendation_agent], 
+    settings=settings,
+    debug=True
+).get_app()
+
 app.mount("/playground", playground_app)
 
-# ✅ Keep your existing main block
+# ✅ Updated main block with better logging
 if __name__ == '__main__':
-    port = int(os.getenv('PORT', 7777))
     print(f"🌐 Starting server on port {port}")
-    print(f"📚 API Documentation: http://0.0.0.0:{port}/docs")
-    print(f"🎮 Playground: http://0.0.0.0:{port}/playground")
-    print(f"❤️  Health Check: http://0.0.0.0:{port}/health")
+    print(f"🚀 Public URL: https://{public_url}")
+    print(f"📚 API Documentation: https://{public_url}/docs")
+    print(f"🎮 Playground: https://{public_url}/playground")
+    print(f"❤️  Health Check: https://{public_url}/health")
+    print(f"🔍 API Info: https://{public_url}/info")
+    
     serve_playground_app('agentMovieRecommendation:app', host='0.0.0.0', port=port, reload=False)

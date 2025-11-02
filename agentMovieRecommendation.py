@@ -101,6 +101,25 @@ settings = PlaygroundSettings(env="dev")
 # Create Playground
 app = Playground(agents=[movie_recommendation_agent], settings=settings).get_app()
 
+# ✅ ADD THIS SECTION RIGHT HERE - Root endpoint
+@app.get("/")
+async def root():
+    return {
+        "message": "Movie Recommendation API", 
+        "status": "running",
+        "version": "1.0",
+        "endpoints": {
+            "docs": "/docs",
+            "health": "/health",
+            "playground": "/playground"
+        },
+        "agent": "Movie Recommendation Agent with DeepSeek"
+    }
+
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy", "timestamp": "2025-11-02T16:20:00Z"}
+
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 7777))
     print(f"🌐 Starting server on port {port}")

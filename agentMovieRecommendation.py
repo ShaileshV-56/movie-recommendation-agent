@@ -2,26 +2,23 @@ import os
 from textwrap import dedent
 from agno.agent import Agent
 from agno.models.openai import OpenAIChat
-from agno.playground import Playground, serve_playground_app, PlaygroundSettings
+from agno.playground import Playground, serve_playground_app
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
 
-# Get API keys from environment
+# Get API key
 openrouter_key = os.getenv('OPENROUTER_API_KEY')
 
-# Validate OpenRouter key
 if not openrouter_key:
     print("❌ ERROR: OPENROUTER_API_KEY not found")
-    print("💡 For Local: Add to .env file")
-    print("💡 For Deployment: Add in platform environment variables")
     exit(1)
 
 print("✅ OpenRouter API key loaded successfully!")
 print("🎬 Starting Movie Recommendation Agent with DeepSeek via OpenRouter...")
 
-# Create agent with OpenRouter + DeepSeek (without Exa tools)
+# Create agent
 movie_recommendation_agent = Agent(
     name='Movie Recommendation Agent',
     model=OpenAIChat(
@@ -31,7 +28,7 @@ movie_recommendation_agent = Agent(
         temperature=0.7,
         max_tokens=2000
     ),
-    tools=[],  # No Exa tools - removes the dependency
+    tools=[],
     description=dedent("""\
         You are a **passionate and knowledgeable movie expert**. Your mission is to help users **discover their next favorite movies** by providing **detailed, personalized, and exciting recommendations**.
 
@@ -97,29 +94,10 @@ movie_recommendation_agent = Agent(
     markdown=True,
 )
 
-# Create Playground with explicit settings to avoid environment conflicts
-playground_settings = PlaygroundSettings(
-    # Explicitly set environment to avoid conflicts
-    env=None  # or use a valid environment if needed
-)
-
-# Create Playground web interface with explicit settings
-app = Playground(
-    agents=[movie_recommendation_agent],
-    settings=playground_settings
-).get_app()
+# Create Playground WITHOUT custom settings
+app = Playground(agents=[movie_recommendation_agent]).get_app()
 
 if __name__ == '__main__':
-    # Get port from environment (for deployment) or default to 7777
     port = int(os.getenv('PORT', 7777))
-    
-    print(f"🌐 Web interface starting on port: {port}")
-    print("🛑 Press Ctrl+C to stop the server")
-    
-    # For deployment, use 0.0.0.0 to allow external connections
-    serve_playground_app(
-        'agentMovieRecommendation:app', 
-        reload=False,  # Disable reload in production
-        host='0.0.0.0',
-        port=port
-    )
+    print(f"🌐 Starting server on port {port}")
+    serve_playground_app('agentMovieRecommendation:app', host='0.0.0.0', port=port, reload=False)

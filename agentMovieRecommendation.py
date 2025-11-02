@@ -1,9 +1,8 @@
 import os
 from textwrap import dedent
-from fastapi import FastAPI
 from agno.agent import Agent
 from agno.models.openai import OpenAIChat
-import uvicorn
+from agno.playground import Playground, serve_playground_app
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -18,13 +17,6 @@ if not openrouter_key:
 
 print("✅ OpenRouter API key loaded successfully!")
 print("🎬 Starting Movie Recommendation Agent with DeepSeek via OpenRouter...")
-
-# Get your public URL for better logging
-public_url = os.getenv('RAILWAY_STATIC_URL', 'movie-recommendation-agent.up.railway.app')
-port = int(os.getenv('PORT', 7777))
-
-print(f"🌐 Public URL: {public_url}")
-print(f"🔧 Port: {port}")
 
 # Create agent
 movie_recommendation_agent = Agent(
@@ -102,80 +94,13 @@ movie_recommendation_agent = Agent(
     markdown=True,
 )
 
-# ✅ Create FastAPI app directly
-app = FastAPI(
-    title="Movie Recommendation API",
-    description="AI-powered movie recommendation system using DeepSeek via OpenRouter",
-    version="1.0.0"
-)
-
-# ✅ Simple chat endpoint using the agent directly
-@app.post("/chat")
-async def chat_with_agent(message: str):
-    """Chat with the movie recommendation agent"""
-    try:
-        response = await movie_recommendation_agent.arun(message)
-        return {
-            "response": response,
-            "status": "success"
-        }
-    except Exception as e:
-        return {
-            "error": str(e),
-            "status": "error"
-        }
-
-@app.get("/health")
-async def health_check():
-    import datetime
-    return {
-        "status": "healthy", 
-        "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
-        "service": "Movie Recommendation API",
-        "agent": "Movie Recommendation Agent"
-    }
-
-@app.get("/info")
-async def api_info():
-    return {
-        "name": "Movie Recommendation API",
-        "version": "1.0.0",
-        "description": "AI-powered movie recommendation system",
-        "agent": "Movie Recommendation Agent with DeepSeek",
-        "model": "deepseek/deepseek-chat",
-        "endpoints": {
-            "chat": "/chat (POST with {'message': 'your question'})",
-            "health": "/health", 
-            "info": "/info",
-            "docs": "/docs"
-        }
-    }
-
-@app.get("/")
-async def root():
-    return {
-        "message": "Movie Recommendation API", 
-        "status": "running",
-        "version": "1.0.0",
-        "usage": "Use the /chat endpoint to get movie recommendations",
-        "example": {
-            "endpoint": "POST /chat",
-            "body": {"message": "Recommend some sci-fi movies from the last 5 years"}
-        }
-    }
+# ✅ FIXED: Create Playground without settings to avoid pydantic env bug
+app = Playground(agents=[movie_recommendation_agent]).get_app()
 
 if __name__ == '__main__':
+    port = int(os.getenv('PORT', 7777))
     print(f"🌐 Starting server on port {port}")
-    print(f"🚀 Public URL: https://{public_url}")
-    print(f"📚 API Documentation: https://{public_url}/docs")
-    print(f"💬 Chat Endpoint: https://{public_url}/chat")
-    print(f"❤️  Health Check: https://{public_url}/health")
-    print(f"🔍 API Info: https://{public_url}/info")
+    print(f"🎬 Movie Recommendation Agent is running!")
+    print(f"🔗 Connect to Agno Playground: https://app.agno.com/playground?endpoint=http://localhost:{port}")
     
-    # Use uvicorn directly
-    uvicorn.run(
-        "agentMovieRecommendation:app",
-        host="0.0.0.0",
-        port=port,
-        reload=False
-    )
+    serve_playground_app(app, host='0.0.0.0', port=port, reload=False)
